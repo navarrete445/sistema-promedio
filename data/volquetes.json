@@ -33,5 +33,10 @@
     "id": 7,
     "placa": "CHY-769",
     "activo": true
+  },
+  {
+    "id": 8,
+    "placa": "CHF-712",
+    "activo": true
   }
 ]
