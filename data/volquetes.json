@@ -8,5 +8,10 @@
     "id": 2,
     "placa": "TFF-944",
     "activo": true
+  },
+  {
+    "id": 3,
+    "placa": "CEW-743",
+    "activo": true
   }
 ]
