@@ -43,5 +43,10 @@
     "id": 9,
     "placa": "BZD-748",
     "activo": true
+  },
+  {
+    "id": 10,
+    "placa": "BZO-893",
+    "activo": true
   }
 ]
