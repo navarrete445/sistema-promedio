@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "id": 1,
+    "fecha": "2026-06-15",
+    "labor_id": 1,
+    "volquete_id": 1,
+    "kg": 31300,
+    "toneladas": 31.3
+  }
+]
