@@ -23,5 +23,10 @@
     "id": 5,
     "placa": "CHU-820",
     "activo": true
+  },
+  {
+    "id": 6,
+    "placa": "BZA-947",
+    "activo": true
   }
 ]
