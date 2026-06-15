@@ -965,7 +965,7 @@ function renderVolquetes(){
 function fillProduccionCombos(){
   const labores=db.labores(); const pc=db.pc(); const ps=db.plantas(); const cs=db.clientes(); const vols=db.volquetes();
   document.getElementById('prLabor').innerHTML='<option value="">-- Seleccione --</option>'+labores.map(l=>{ const r=pc.find(x=>x.id===l.planta_cliente_id)||{}; const p=ps.find(x=>x.id===r.planta_id)||{}; const c=cs.find(x=>x.id===r.cliente_id)||{}; return `<option value="${l.id}">${l.nombre} (${p.nombre||'?'} – ${c.nombre||'?'})</option>`; }).join('');
-  document.getElementById('prVolquete').innerHTML='<option value="">-- Seleccione --</option>'+vols.map(v=>`<option value="${v.id}">${v.placa}</option>`).join('');
+  document.getElementById('prVolquete').innerHTML='<option value="">-- Seleccione --</option>'+[...vols].sort((a,b)=>a.placa.localeCompare(b.placa)).map(v=>`<option value="${v.id}">${v.placa}</option>`).join('');
 }
 function toggleNuevaLabor(){
   const f=document.getElementById('nuevaLaborForm'); const visible=f.style.display==='block';
