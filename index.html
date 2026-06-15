@@ -637,9 +637,10 @@ async function ghGet(path){
     return {content,sha:data.sha};
   }catch(e){ return null; }
 }
-async function ghPut(path,content,sha){
+async function ghPut(path,content,sha,_retry=false){
   const cfg=getConfig(); if(!cfg) return false;
-  const body={message:`update ${path}`,content:btoa(unescape(encodeURIComponent(JSON.stringify(content,null,2))))};
+  const encoded=btoa(unescape(encodeURIComponent(JSON.stringify(content,null,2))));
+  const body={message:`update ${path}`,content:encoded};
   if(sha) body.sha=sha;
   try{
     const res=await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${path}`,{
@@ -648,6 +649,11 @@ async function ghPut(path,content,sha){
       body:JSON.stringify(body)
     });
     if(res.ok){ const data=await res.json(); SHAS[path]=data.content.sha; return true; }
+    // SHA desactualizado — reintentar una vez con SHA fresco
+    if(!_retry && (res.status===409||res.status===422||res.status===400)){
+      const fresh=await ghGet(path);
+      if(fresh){ SHAS[path]=fresh.sha; return ghPut(path,content,fresh.sha,true); }
+    }
     return false;
   }catch(e){ return false; }
 }
@@ -997,7 +1003,7 @@ async function guardarNuevaPlaca(){
   DB.volquetes.push({id:newId,placa,activo:true});
   const ok=await saveDB('volquetes',true); showLoading(false);
   if(ok){ fillProduccionCombos(); document.getElementById('prVolquete').value=newId; document.getElementById('nuevaPlacaForm').style.display='none'; toast(`Placa "${placa}" creada y seleccionada.`); }
-  else toast('Error al guardar.','error');
+  else{ DB.volquetes=DB.volquetes.filter(v=>v.id!==newId); toast('Error al guardar en GitHub.','error'); }
 }
 function calcTon(){ const kg=parseFloat(document.getElementById('prKg').value)||0; document.getElementById('prTon').textContent=fmtTon(kgToTon(kg)); }
 async function saveProduccion(){
