@@ -806,8 +806,8 @@ function fillDashFiltros(){
   const labores=db.labores(); const pc=db.pc(); const ps=db.plantas(); const cs=db.clientes(); const vols=db.volquetes();
   const selL=document.getElementById('dashFiltroLabor'); const selV=document.getElementById('dashFiltroPlaca');
   const curL=selL.value, curV=selV.value;
-  selL.innerHTML='<option value="">— Todas las labores —</option>'+labores.map(l=>{ const r=pc.find(x=>x.id===l.planta_cliente_id)||{}; const p=ps.find(x=>x.id===r.planta_id)||{}; const c=cs.find(x=>x.id===r.cliente_id)||{}; return `<option value="${l.id}">${l.nombre} (${p.nombre||'?'} – ${c.nombre||'?'})</option>`; }).join('');
-  selV.innerHTML='<option value="">— Todas las placas —</option>'+vols.map(v=>`<option value="${v.id}">${v.placa}</option>`).join('');
+  selL.innerHTML='<option value="">— Todas las labores —</option>'+[...labores].sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(l=>{ const r=pc.find(x=>x.id===l.planta_cliente_id)||{}; const p=ps.find(x=>x.id===r.planta_id)||{}; const c=cs.find(x=>x.id===r.cliente_id)||{}; return `<option value="${l.id}">${l.nombre} (${p.nombre||'?'} – ${c.nombre||'?'})</option>`; }).join('');
+  selV.innerHTML='<option value="">— Todas las placas —</option>'+[...vols].sort((a,b)=>a.placa.localeCompare(b.placa)).map(v=>`<option value="${v.id}">${v.placa}</option>`).join('');
   if(curL) selL.value=curL; if(curV) selV.value=curV;
 }
 function limpiarFiltrosDash(){ document.getElementById('dashFiltroLabor').value=''; document.getElementById('dashFiltroPlaca').value=''; renderDashboard(); }
@@ -964,7 +964,7 @@ function renderVolquetes(){
 // ═══════════════════════════════════════════════════════════
 function fillProduccionCombos(){
   const labores=db.labores(); const pc=db.pc(); const ps=db.plantas(); const cs=db.clientes(); const vols=db.volquetes();
-  document.getElementById('prLabor').innerHTML='<option value="">-- Seleccione --</option>'+labores.map(l=>{ const r=pc.find(x=>x.id===l.planta_cliente_id)||{}; const p=ps.find(x=>x.id===r.planta_id)||{}; const c=cs.find(x=>x.id===r.cliente_id)||{}; return `<option value="${l.id}">${l.nombre} (${p.nombre||'?'} – ${c.nombre||'?'})</option>`; }).join('');
+  document.getElementById('prLabor').innerHTML='<option value="">-- Seleccione --</option>'+[...labores].sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(l=>{ const r=pc.find(x=>x.id===l.planta_cliente_id)||{}; const p=ps.find(x=>x.id===r.planta_id)||{}; const c=cs.find(x=>x.id===r.cliente_id)||{}; return `<option value="${l.id}">${l.nombre} (${p.nombre||'?'} – ${c.nombre||'?'})</option>`; }).join('');
   document.getElementById('prVolquete').innerHTML='<option value="">-- Seleccione --</option>'+[...vols].sort((a,b)=>a.placa.localeCompare(b.placa)).map(v=>`<option value="${v.id}">${v.placa}</option>`).join('');
 }
 function toggleNuevaLabor(){
