@@ -68,5 +68,10 @@
     "id": 14,
     "placa": "CCZ-743",
     "activo": true
+  },
+  {
+    "id": 15,
+    "placa": "CHV-785",
+    "activo": true
   }
 ]
