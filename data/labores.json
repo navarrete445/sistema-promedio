@@ -4,5 +4,11 @@
     "nombre": "LA ESPERANZA",
     "planta_cliente_id": 4,
     "activo": true
+  },
+  {
+    "id": 2,
+    "nombre": "MELON",
+    "planta_cliente_id": 4,
+    "activo": true
   }
 ]
