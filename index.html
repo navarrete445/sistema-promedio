@@ -358,9 +358,9 @@
 
   <div class="card">
     <div class="card-title" id="dashTableTitle">Registros de producción</div>
-    <div class="table-wrap">
+    <div class="table-wrap" style="max-height:420px;overflow-y:auto;">
       <table>
-        <thead><tr><th>Fecha</th><th>Planta</th><th>Cliente</th><th>Labor</th><th>Placa</th><th>Kg</th><th>Toneladas</th></tr></thead>
+        <thead style="position:sticky;top:0;z-index:1;"><tr><th>Fecha</th><th>Planta</th><th>Cliente</th><th>Labor</th><th>Placa</th><th>Kg</th><th>Toneladas</th></tr></thead>
         <tbody id="dashTable"></tbody>
       </table>
     </div>
@@ -837,7 +837,7 @@ function renderDashboard(){
   document.getElementById('dashTableTitle').textContent=filtrado?`Registros filtrados (${prod.length})`:'Últimos registros de producción';
   const tbody=document.getElementById('dashTable');
   const sortByFecha=(a,b)=>a.fecha.localeCompare(b.fecha);
-  const filas=filtrado?[...prod].sort(sortByFecha):[...prodAll].sort(sortByFecha).slice(0,10);
+  const filas=filtrado?[...prod].sort(sortByFecha):[...prodAll].sort(sortByFecha);
   if(!filas.length){ tbody.innerHTML=`<tr><td colspan="7" class="empty">Sin registros${filtrado?' para este filtro':' aún'}</td></tr>`; return; }
   tbody.innerHTML=filas.map(r=>{ const l=labores.find(x=>x.id===r.labor_id)||{}; const v=volquetes.find(x=>x.id===r.volquete_id)||{}; const rel=pc.find(x=>x.id===l.planta_cliente_id)||{}; const p=plantas.find(x=>x.id===rel.planta_id)||{}; const c=clientes.find(x=>x.id===rel.cliente_id)||{}; return `<tr><td>${r.fecha}</td><td>${p.nombre||'?'}</td><td>${c.nombre||'?'}</td><td>${l.nombre||'?'}</td><td>${v.placa||'?'}</td><td>${fmtKg(r.kg)}</td><td>${fmtTon(Number(r.toneladas))}</td></tr>`; }).join('');
 }
