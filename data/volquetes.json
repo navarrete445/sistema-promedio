@@ -28,5 +28,10 @@
     "id": 6,
     "placa": "BZA-947",
     "activo": true
+  },
+  {
+    "id": 7,
+    "placa": "CHY-769",
+    "activo": true
   }
 ]
