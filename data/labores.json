@@ -1,1 +1,8 @@
-[]
+[
+  {
+    "id": 1,
+    "nombre": "LA ESPERANZA",
+    "planta_cliente_id": 4,
+    "activo": true
+  }
+]
