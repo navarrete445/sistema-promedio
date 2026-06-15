@@ -664,7 +664,7 @@ function showLoading(show,msg=''){
 // ═══════════════════════════════════════════════════════════
 //  DB OPERATIONS
 // ═══════════════════════════════════════════════════════════
-function nextId(entity){ DB.seq[entity]=(DB.seq[entity]||0)+1; return DB.seq[entity]; }
+function nextId(entity){ const arr=Array.isArray(DB[entity])?DB[entity]:[]; const max=arr.length?Math.max(...arr.map(r=>r.id||0)):0; return max+1; }
 
 async function saveDB(collection,withSeq=false){
   const path=`data/${collection}.json`;
