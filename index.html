@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Control de Producción</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --primary: #2E75B6; --primary-dark: #1a5490; --primary-light: #dbeafe;
+    --success: #16a34a; --danger: #dc2626; --warning: #d97706;
+    --bg: #f1f5f9; --card: #ffffff; --border: #e2e8f0;
+    --text: #1e293b; --text-muted: #64748b;
+    --radius: 8px; --shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* ══ HEADER ══ */
+  header {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: #fff; padding: 0 20px;
+    display: flex; align-items: center; gap: 10px;
+    height: 54px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    position: sticky; top: 0; z-index: 100;
+  }
+  header span { font-size: 1.3rem; flex-shrink: 0; }
+  header h1 { font-size: 1rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ══ NAV PRINCIPAL ══ */
+  nav.main-nav {
+    background: var(--card); border-bottom: 2px solid var(--border);
+    padding: 0 12px; display: flex; gap: 2px;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; position: sticky; top: 54px; z-index: 99;
+  }
+  nav.main-nav::-webkit-scrollbar { display: none; }
+  nav.main-nav button {
+    background: none; border: none; padding: 13px 18px; cursor: pointer;
+    font-size: 0.88rem; font-weight: 600; color: var(--text-muted);
+    white-space: nowrap; border-bottom: 3px solid transparent;
+    margin-bottom: -2px; transition: all .15s; flex-shrink: 0;
+  }
+  nav.main-nav button:hover { color: var(--primary); background: var(--primary-light); }
+  nav.main-nav button.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+  /* ══ SUB-NAV ══ */
+  nav.sub-nav {
+    background: #f8fafc; border-bottom: 1px solid var(--border);
+    padding: 8px 12px; display: flex; gap: 6px;
+    flex-wrap: wrap; overflow-x: auto; -webkit-overflow-scrolling: touch;
+  }
+  nav.sub-nav button {
+    background: none; border: 1.5px solid var(--border);
+    padding: 6px 12px; cursor: pointer; font-size: 0.8rem;
+    font-weight: 600; color: var(--text-muted); border-radius: 20px;
+    transition: all .15s; white-space: nowrap; flex-shrink: 0;
+  }
+  nav.sub-nav button:hover { border-color: var(--primary); color: var(--primary); }
+  nav.sub-nav button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+  /* ══ PANELS ══ */
+  .panel { display: none; padding: 16px; max-width: 1200px; margin: 0 auto; }
+  .panel.active { display: block; }
+  .sub-panel { display: none; }
+  .sub-panel.active { display: block; }
+
+  /* ══ CARDS ══ */
+  .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; margin-bottom: 14px; }
+  .card-title { font-size: 0.82rem; font-weight: 700; color: var(--text-muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: .5px; }
+
+  /* ══ FORMS ══ */
+  .form-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+  .form-group { display: flex; flex-direction: column; gap: 4px; flex: 1 1 180px; min-width: 0; }
+  .form-group label { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); }
+  input[type=text], input[type=date], input[type=number], select {
+    padding: 9px 11px; border: 1.5px solid var(--border); border-radius: 6px;
+    font-size: 0.9rem; color: var(--text); background: #fff; outline: none;
+    transition: border-color .15s; width: 100%;
+  }
+  input[type=text]:focus, input[type=date]:focus, input[type=number]:focus, select:focus {
+    border-color: var(--primary); box-shadow: 0 0 0 3px rgba(46,117,182,.15);
+  }
+  .checkbox-group { display: flex; align-items: center; gap: 8px; padding-bottom: 4px; flex: 0 0 auto; }
+  .checkbox-group input { width: 18px; height: 18px; cursor: pointer; flex-shrink: 0; }
+  .checkbox-group label { font-size: 0.9rem; cursor: pointer; }
+
+  /* ══ BUTTONS ══ */
+  .btn {
+    padding: 9px 16px; border: none; border-radius: 6px; cursor: pointer;
+    font-size: 0.85rem; font-weight: 600; transition: all .15s;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    white-space: nowrap;
+  }
+  .btn-primary  { background: var(--primary); color: #fff; }
+  .btn-primary:hover  { background: var(--primary-dark); }
+  .btn-success  { background: var(--success); color: #fff; }
+  .btn-success:hover  { background: #15803d; }
+  .btn-danger   { background: var(--danger);  color: #fff; }
+  .btn-danger:hover   { background: #b91c1c; }
+  .btn-warning  { background: var(--warning); color: #fff; }
+  .btn-warning:hover  { background: #b45309; }
+  .btn-secondary{ background: #e2e8f0; color: var(--text); }
+  .btn-secondary:hover{ background: #cbd5e1; }
+  .btn-sm { padding: 5px 10px; font-size: 0.76rem; }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+
+  /* ══ TABLES ══ */
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: var(--radius); border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.84rem; min-width: 500px; }
+  thead tr { background: var(--primary); color: #fff; }
+  thead th { padding: 10px 12px; text-align: left; font-weight: 600; white-space: nowrap; }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+  tbody tr:hover { background: var(--primary-light); }
+  tbody td { padding: 9px 12px; vertical-align: middle; }
+  tbody tr:last-child { border-bottom: none; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 0.72rem; font-weight: 700; }
+  .badge-yes { background: #dcfce7; color: #15803d; }
+  .badge-no  { background: #fee2e2; color: #b91c1c; }
+
+  /* ══ METRICS ══ */
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .metric-card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px 10px; text-align: center; border-top: 4px solid var(--primary); }
+  .metric-icon  { font-size: 1.5rem; }
+  .metric-val   { font-size: 1.6rem; font-weight: 700; color: var(--primary); margin: 4px 0; }
+  .metric-label { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
+
+  /* ══ TOAST ══ */
+  #toast {
+    position: fixed; bottom: 16px; right: 16px;
+    background: #1e293b; color: #fff; padding: 11px 18px;
+    border-radius: 8px; font-size: 0.85rem; opacity: 0;
+    transform: translateY(10px); transition: all .25s;
+    pointer-events: none; z-index: 1100; max-width: 90vw;
+  }
+  #toast.show  { opacity: 1; transform: translateY(0); }
+  #toast.error   { background: var(--danger); }
+  #toast.success { background: var(--success); }
+
+  /* ══ MODALS ══ */
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
+  .overlay.show { display: flex; }
+  .modal { background: var(--card); border-radius: 12px; padding: 22px; width: 100%; max-width: 420px; box-shadow: 0 10px 40px rgba(0,0,0,.25); max-height: 90vh; overflow-y: auto; }
+  .modal h3 { margin-bottom: 10px; font-size: 1rem; }
+  .modal p  { color: var(--text-muted); margin-bottom: 16px; font-size: 0.88rem; }
+  .modal-btns { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+
+  /* ══ TON DISPLAY ══ */
+  .ton-display { background: var(--primary-light); border: 1.5px solid var(--primary); border-radius: 6px; padding: 9px 14px; font-weight: 700; color: var(--primary); text-align: center; width: 100%; }
+
+  /* ══ REPORTES ══ */
+  .report-option { display: flex; align-items: center; gap: 12px; padding: 13px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .report-option:last-child { border-bottom: none; }
+  .report-option > div:first-child { flex-shrink: 0; }
+  .report-option label { flex: 1 1 160px; font-weight: 600; min-width: 0; }
+  .report-option small { display: block; color: var(--text-muted); font-weight: 400; font-size: 0.8rem; }
+  .report-option select { flex: 1 1 160px; }
+
+  .section-divider { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; padding: 6px 0 10px; border-bottom: 1px solid var(--border); margin-bottom: 14px; }
+  .empty { text-align: center; padding: 28px; color: var(--text-muted); font-size: 0.88rem; }
+
+  /* ══ LOADING SPINNER ══ */
+  #loadingOverlay { position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:2000;flex-direction:column;gap:16px; }
+  .spinner { width:46px;height:46px;border:5px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .85s linear infinite; }
+  #loadingMsg { color:#fff;font-size:0.92rem;font-weight:600;letter-spacing:.3px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  /* ══ CONFIG CARD ══ */
+  .cfg-field { margin-bottom:14px; }
+  .cfg-field label { display:block;font-size:0.8rem;font-weight:600;color:var(--text-muted);margin-bottom:4px; }
+  .cfg-field small { display:block;color:var(--text-muted);font-size:0.76rem;margin-top:4px; }
+  .cfg-field a { color:var(--primary); }
+
+  /* ══ RESPONSIVE: TABLET (≤ 1024px) ══ */
+  @media (max-width: 1024px) {
+    .panel { padding: 14px; }
+    .metrics { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); }
+  }
+
+  /* ══ RESPONSIVE: MÓVIL (≤ 768px) ══ */
+  @media (max-width: 768px) {
+    header h1 { font-size: 0.88rem; }
+    nav.main-nav button { padding: 11px 14px; font-size: 0.8rem; }
+    .panel { padding: 10px; }
+    .card { padding: 14px; }
+
+    /* Formularios: columna en móvil */
+    .form-row { flex-direction: column; gap: 10px; }
+    .form-group { flex: 1 1 100%; }
+    input[type=text], input[type=date], input[type=number], select { font-size: 1rem; padding: 10px 12px; }
+
+    /* Botones principales: ancho completo */
+    .btn-row { flex-direction: column; }
+    .btn-row .btn { width: 100%; justify-content: center; padding: 11px; }
+
+    /* Botones pequeños de tabla: mantener compactos */
+    .btn-sm { width: auto; padding: 5px 8px; }
+
+    /* Métricas: 2 columnas en móvil */
+    .metrics { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .metric-card { padding: 12px 8px; }
+    .metric-val  { font-size: 1.35rem; }
+    .metric-icon { font-size: 1.2rem; }
+
+    /* Tabla */
+    thead th, tbody td { padding: 8px 10px; font-size: 0.8rem; }
+
+    /* Report options: columna */
+    .report-option { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .report-option .btn { width: 100%; justify-content: center; }
+    .report-option select { width: 100%; }
+
+    /* Modal */
+    .modal { padding: 18px; }
+    .modal-btns { flex-direction: column-reverse; }
+    .modal-btns .btn { width: 100%; justify-content: center; }
+
+    /* Mini-forms inline */
+    #nuevaLaborForm > div, #nuevaPlacaForm > div { flex-direction: column; }
+    #nuevaLaborForm .btn, #nuevaPlacaForm .btn { width: 100%; justify-content: center; }
+    #nuevaLaborForm input, #nuevaLaborForm select,
+    #nuevaPlacaForm input { width: 100%; }
+
+    /* Ton display */
+    .ton-display { width: 100%; }
+
+    /* Sub nav */
+    nav.sub-nav { padding: 6px 10px; }
+    nav.sub-nav button { padding: 5px 10px; font-size: 0.76rem; }
+
+    /* Toast */
+    #toast { right: 8px; left: 8px; text-align: center; max-width: 100%; }
+  }
+
+  /* ══ RESPONSIVE: MÓVIL PEQUEÑO (≤ 420px) ══ */
+  @media (max-width: 420px) {
+    header { height: 48px; padding: 0 12px; }
+    header span { font-size: 1.1rem; }
+    header h1 { font-size: 0.82rem; }
+    nav.main-nav { top: 48px; }
+    nav.main-nav button { padding: 10px 11px; font-size: 0.75rem; }
+    .metrics { grid-template-columns: repeat(2, 1fr); }
+    .metric-val { font-size: 1.2rem; }
+    .card { padding: 12px; border-radius: 6px; }
+    table { min-width: 420px; font-size: 0.76rem; }
+    thead th, tbody td { padding: 7px 8px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span style="font-size:1.4rem">🏭</span>
+  <h1>Sistema de Control de Producción</h1>
+  <button onclick="abrirConfig()" id="cfgHeaderBtn" style="margin-left:auto;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.35);color:#fff;padding:6px 13px;border-radius:6px;cursor:pointer;font-size:0.8rem;font-weight:600;flex-shrink:0">⚙️ GitHub</button>
+</header>
+
+<!-- ══ NAV PRINCIPAL ══ -->
+<nav class="main-nav">
+  <button class="active" onclick="showMain('dashboard')">📊 Dashboard</button>
+  <button onclick="showMain('catalogos')">📂 Catálogos</button>
+  <button onclick="showMain('produccion')">📋 Producción y Reportes</button>
+</nav>
+
+<!-- ══ SUB-NAV CATÁLOGOS ══ -->
+<nav class="sub-nav" id="subNavCatalogos" style="display:none">
+  <button class="active" onclick="showSub('plantas')">🏭 Plantas</button>
+  <button onclick="showSub('clientes')">👤 Clientes</button>
+  <button onclick="showSub('pc')">🔗 Planta-Cliente</button>
+  <button onclick="showSub('labores')">🌿 Labores</button>
+  <button onclick="showSub('volquetes')">🚛 Volquetes</button>
+</nav>
+
+<!-- ════════════════════ DASHBOARD ════════════════════ -->
+<div id="tab-dashboard" class="panel active">
+
+  <!-- Formulario de registro -->
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-title">📋 Registro de Producción</div>
+    <div class="form-row">
+      <div class="form-group"><label>Fecha</label><input type="date" id="prFecha"></div>
+      <div class="form-group">
+        <label>Labor</label>
+        <div style="display:flex;gap:6px;align-items:center">
+          <select id="prLabor" style="min-width:240px"><option value="">-- Seleccione --</option></select>
+          <button type="button" class="btn btn-success btn-sm" onclick="toggleNuevaLabor()">➕ Nueva Labor</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Placa (Volquete)</label>
+        <div style="display:flex;gap:6px;align-items:center">
+          <select id="prVolquete"><option value="">-- Seleccione --</option></select>
+          <button type="button" class="btn btn-success btn-sm" onclick="toggleNuevaPlaca()">➕ Nueva Placa</button>
+        </div>
+      </div>
+    </div>
+    <!-- Mini-form nueva labor -->
+    <div id="nuevaLaborForm" style="display:none;margin-top:10px;background:#fefce8;border:1.5px solid #d97706;border-radius:8px;padding:12px 16px;">
+      <div style="font-size:0.82rem;font-weight:700;color:#b45309;margin-bottom:8px">🌿 Registrar nueva Labor</div>
+      <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+        <div class="form-group">
+          <label>Nombre de la Labor</label>
+          <input type="text" id="nuevaLaborNombre" placeholder="Ej: La Esperanza" style="min-width:180px" onkeydown="if(event.key==='Enter')guardarNuevaLabor()">
+        </div>
+        <div class="form-group">
+          <label>Planta – Cliente</label>
+          <select id="nuevaLaborPC" style="min-width:220px"><option value="">-- Seleccione --</option></select>
+        </div>
+        <button type="button" class="btn btn-warning btn-sm" onclick="guardarNuevaLabor()">💾 Guardar y seleccionar</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="toggleNuevaLabor()">✖ Cancelar</button>
+      </div>
+    </div>
+
+    <!-- Mini-form nueva placa -->
+    <div id="nuevaPlacaForm" style="display:none;margin-top:10px;background:#f0fdf4;border:1.5px solid #16a34a;border-radius:8px;padding:12px 16px;">
+      <div style="font-size:0.82rem;font-weight:700;color:#15803d;margin-bottom:8px">🚛 Registrar nueva placa</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input type="text" id="nuevaPlacaInput" placeholder="Ej: ASD-123" style="text-transform:uppercase;min-width:160px" onkeydown="if(event.key==='Enter')guardarNuevaPlaca()">
+        <button type="button" class="btn btn-success btn-sm" onclick="guardarNuevaPlaca()">💾 Guardar y seleccionar</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="toggleNuevaPlaca()">✖ Cancelar</button>
+      </div>
+    </div>
+    <div class="form-row" style="margin-top:10px;align-items:center">
+      <div class="form-group"><label>Kilogramos</label><input type="number" id="prKg" min="0.01" step="0.01" placeholder="0.00" oninput="calcTon()" style="min-width:160px"></div>
+      <div class="form-group"><label>Toneladas</label><div class="ton-display" id="prTon">0.0000</div></div>
+      <input type="hidden" id="prId">
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="resetForm('produccion')">➕ Nuevo</button>
+      <button class="btn btn-primary" onclick="saveProduccion()">💾 Guardar</button>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-title">🔍 Filtros</div>
+    <div class="form-row" style="align-items:flex-end; gap:16px">
+      <div class="form-group">
+        <label>Labor</label>
+        <select id="dashFiltroLabor" onchange="renderDashboard()" style="min-width:220px">
+          <option value="">— Todas las labores —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Placa (Volquete)</label>
+        <select id="dashFiltroPlaca" onchange="renderDashboard()" style="min-width:160px">
+          <option value="">— Todas las placas —</option>
+        </select>
+      </div>
+      <button class="btn btn-secondary" onclick="limpiarFiltrosDash()">✖ Limpiar</button>
+    </div>
+    <div id="dashResumenFiltro" style="margin-top:12px;display:none;background:var(--primary-light);border:1.5px solid var(--primary);border-radius:8px;padding:10px 16px;">
+      <span id="dashResumenTexto" style="font-size:0.88rem;font-weight:600;color:var(--primary-dark)"></span>
+    </div>
+  </div>
+
+  <div class="metrics" id="dashMetrics"></div>
+
+  <div class="card">
+    <div class="card-title" id="dashTableTitle">Registros de producción</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Fecha</th><th>Planta</th><th>Cliente</th><th>Labor</th><th>Placa</th><th>Kg</th><th>Toneladas</th></tr></thead>
+        <tbody id="dashTable"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════ CATÁLOGOS ════════════════════ -->
+<div id="tab-catalogos" class="panel">
+
+  <!-- PLANTAS -->
+  <div id="sub-plantas" class="sub-panel active">
+    <div class="card">
+      <div class="card-title">🏭 Plantas</div>
+      <div class="form-row">
+        <div class="form-group"><label>Nombre</label><input type="text" id="pNombre" placeholder="Ej: Luna"></div>
+        <div class="checkbox-group" style="padding-top:20px"><input type="checkbox" id="pActivo" checked><label for="pActivo">Activo</label></div>
+        <input type="hidden" id="pId">
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="resetForm('plantas')">➕ Nuevo</button>
+        <button class="btn btn-primary" onclick="savePlanta()">💾 Guardar</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table><thead><tr><th>ID</th><th>Nombre</th><th>Activo</th><th>Acciones</th></tr></thead>
+        <tbody id="plantasTable"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLIENTES -->
+  <div id="sub-clientes" class="sub-panel">
+    <div class="card">
+      <div class="card-title">👤 Clientes</div>
+      <div class="form-row">
+        <div class="form-group"><label>Nombre</label><input type="text" id="cNombre" placeholder="Ej: Aníbal Calderón"></div>
+        <div class="checkbox-group" style="padding-top:20px"><input type="checkbox" id="cActivo" checked><label for="cActivo">Activo</label></div>
+        <input type="hidden" id="cId">
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="resetForm('clientes')">➕ Nuevo</button>
+        <button class="btn btn-primary" onclick="saveCliente()">💾 Guardar</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table><thead><tr><th>ID</th><th>Nombre</th><th>Activo</th><th>Acciones</th></tr></thead>
+        <tbody id="clientesTable"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PLANTA-CLIENTE -->
+  <div id="sub-pc" class="sub-panel">
+    <div class="card">
+      <div class="card-title">🔗 Asociar Planta – Cliente</div>
+      <div class="form-row">
+        <div class="form-group"><label>Planta</label><select id="pcPlanta"><option value="">-- Seleccione --</option></select></div>
+        <div class="form-group"><label>Cliente</label><select id="pcCliente"><option value="">-- Seleccione --</option></select></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="savePlantaCliente()">🔗 Asociar</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table><thead><tr><th>ID</th><th>Planta</th><th>Cliente</th><th>Acciones</th></tr></thead>
+        <tbody id="pcTable"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- LABORES -->
+  <div id="sub-labores" class="sub-panel">
+    <div class="card">
+      <div class="card-title">🌿 Labores</div>
+      <div class="form-row">
+        <div class="form-group"><label>Nombre</label><input type="text" id="lNombre" placeholder="Ej: La Esperanza"></div>
+        <div class="form-group"><label>Planta – Cliente</label><select id="lPC"><option value="">-- Seleccione --</option></select></div>
+        <div class="checkbox-group" style="padding-top:20px"><input type="checkbox" id="lActivo" checked><label for="lActivo">Activo</label></div>
+        <input type="hidden" id="lId">
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="resetForm('labores')">➕ Nuevo</button>
+        <button class="btn btn-primary" onclick="saveLabor()">💾 Guardar</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table><thead><tr><th>ID</th><th>Labor</th><th>Planta</th><th>Cliente</th><th>Activo</th><th>Acciones</th></tr></thead>
+        <tbody id="laboresTable"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- VOLQUETES -->
+  <div id="sub-volquetes" class="sub-panel">
+    <div class="card">
+      <div class="card-title">🚛 Volquetes</div>
+      <div class="form-row">
+        <div class="form-group"><label>Placa</label><input type="text" id="vPlaca" placeholder="Ej: ASD-123" style="text-transform:uppercase"></div>
+        <div class="checkbox-group" style="padding-top:20px"><input type="checkbox" id="vActivo" checked><label for="vActivo">Activo</label></div>
+        <input type="hidden" id="vId">
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="resetForm('volquetes')">➕ Nuevo</button>
+        <button class="btn btn-primary" onclick="saveVolquete()">💾 Guardar</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table><thead><tr><th>ID</th><th>Placa</th><th>Activo</th><th>Acciones</th></tr></thead>
+        <tbody id="volquetesTable"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /tab-catalogos -->
+
+<!-- ════════════════════ PRODUCCIÓN Y REPORTES ════════════════════ -->
+<div id="tab-produccion" class="panel">
+
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>ID</th><th>Fecha</th><th>Planta</th><th>Cliente</th><th>Labor</th><th>Placa</th><th>Kg</th><th>Toneladas</th><th>Acciones</th></tr></thead>
+        <tbody id="produccionTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Reportes -->
+  <div class="card" style="margin-top:8px">
+    <div class="card-title">📁 Exportar Reportes</div>
+
+    <div class="report-option">
+      <div style="font-size:1.6rem">📊</div>
+      <label>Reporte General<small>Todos los registros con planta, cliente, labor, placa, kg y toneladas</small></label>
+      <button class="btn btn-success" onclick="exportarGeneral()">📥 Excel</button>
+    </div>
+
+    <div class="report-option">
+      <div style="font-size:1.6rem">🌿</div>
+      <label>Por Labor<small>Con totales y promedio de la labor seleccionada</small></label>
+      <select id="rptLabor" style="min-width:200px"><option value="">-- Labor --</option></select>
+      <button class="btn btn-success" onclick="exportarPorLabor()">📥 Excel</button>
+    </div>
+
+    <div class="report-option">
+      <div style="font-size:1.6rem">🏭</div>
+      <label>Resumen por Planta<small>Total y promedio agrupado por planta</small></label>
+      <button class="btn btn-success" onclick="exportarResumenPlanta()">📥 Excel</button>
+    </div>
+
+    <div class="report-option">
+      <div style="font-size:1.6rem">💾</div>
+      <label>Copia de seguridad JSON<small>Exportar / importar todos los datos</small></label>
+      <button class="btn btn-warning" onclick="exportarJSON()">💾 Exportar</button>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importarJSON(event)">
+      <button class="btn btn-warning" onclick="document.getElementById('importFile').click()">📂 Importar</button>
+    </div>
+
+    <div class="report-option">
+      <div style="font-size:1.6rem">🗑️</div>
+      <label>Limpiar todos los datos<small>Elimina permanentemente todos los registros del navegador</small></label>
+      <button class="btn btn-danger" onclick="limpiarTodo()">🗑️ Limpiar base de datos</button>
+    </div>
+  </div>
+
+</div><!-- /tab-produccion -->
+
+<!-- ══ LOADING OVERLAY ══ -->
+<div id="loadingOverlay">
+  <div class="spinner"></div>
+  <div id="loadingMsg">Cargando...</div>
+</div>
+
+<!-- ══ MODAL CONFIGURACIÓN GITHUB ══ -->
+<div class="overlay" id="configOverlay">
+  <div class="modal" style="max-width:500px">
+    <h3>⚙️ Configuración GitHub</h3>
+    <p>Los datos se guardan como archivos JSON en tu repositorio de GitHub. Solo necesitas configurar esto una vez.</p>
+
+    <div class="cfg-field">
+      <label>Usuario de GitHub (owner)</label>
+      <input type="text" id="cfgOwner" placeholder="Ej: miusuario">
+    </div>
+    <div class="cfg-field">
+      <label>Nombre del repositorio</label>
+      <input type="text" id="cfgRepo" placeholder="Ej: produccion-datos">
+    </div>
+    <div class="cfg-field">
+      <label>Token de acceso personal (PAT)</label>
+      <input type="password" id="cfgToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+      <small>
+        Se guarda solo en este navegador. El token necesita permiso <strong>Contents → Read and write</strong>.<br>
+        <a href="https://github.com/settings/tokens?type=beta" target="_blank" rel="noopener">Crear Fine-grained token →</a>
+      </small>
+    </div>
+    <div id="cfgError" style="display:none;color:var(--danger);font-size:0.82rem;margin-bottom:10px;padding:8px 12px;background:#fee2e2;border-radius:6px"></div>
+    <div class="modal-btns">
+      <button class="btn btn-secondary" id="cfgCancelBtn" onclick="document.getElementById('configOverlay').classList.remove('show')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarConfig()">💾 Guardar y conectar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Modal limpieza responsable -->
+<div class="overlay" id="limpiarOverlay">
+  <div class="modal" style="max-width:440px">
+    <h3 style="color:var(--danger)">⚠️ Limpiar base de datos</h3>
+    <p style="margin:10px 0 6px;color:var(--text)">Se eliminarán <strong>todos</strong> los datos actuales:</p>
+    <pre id="limpiarResumen" style="background:#f8fafc;border:1px solid var(--border);border-radius:6px;padding:10px;font-size:0.82rem;color:var(--text-muted);margin-bottom:12px;white-space:pre-line"></pre>
+    <p style="color:var(--text-muted);font-size:0.88rem;margin-bottom:6px">
+      ✅ Se descargará un <strong>respaldo automático</strong> antes de limpiar.<br>
+      Para confirmar, escribe <strong>LIMPIAR</strong> en el campo:
+    </p>
+    <input type="text" id="limpiarInput" placeholder="Escribe LIMPIAR para confirmar"
+      style="width:100%;margin-bottom:6px;font-size:0.95rem"
+      onkeydown="if(event.key==='Enter')ejecutarLimpieza()">
+    <p id="limpiarError" style="display:none;color:var(--danger);font-size:0.82rem;margin-bottom:8px">
+      ❌ Debes escribir exactamente <strong>LIMPIAR</strong>
+    </p>
+    <div class="modal-btns">
+      <button class="btn btn-secondary" onclick="cerrarLimpiar()">Cancelar</button>
+      <button class="btn btn-danger" onclick="ejecutarLimpieza()">🗑️ Limpiar y descargar respaldo</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal confirmación general -->
+<div class="overlay" id="confirmOverlay">
+  <div class="modal">
+    <h3>⚠️ Confirmar eliminación</h3>
+    <p id="confirmMsg">¿Está seguro de que desea eliminar este registro?</p>
+    <div class="modal-btns">
+      <button class="btn btn-secondary" onclick="closeConfirm()">Cancelar</button>
+      <button class="btn btn-danger" id="confirmBtn">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  GITHUB CONFIG
+// ═══════════════════════════════════════════════════════════
+const CFG_KEY='gh_config';
+function getConfig(){ try{ return JSON.parse(localStorage.getItem(CFG_KEY)); }catch(e){ return null; } }
+function saveConfig(cfg){ localStorage.setItem(CFG_KEY,JSON.stringify(cfg)); }
+
+// ═══════════════════════════════════════════════════════════
+//  IN-MEMORY DATABASE
+// ═══════════════════════════════════════════════════════════
+const DB={ plantas:[], clientes:[], pc:[], labores:[], volquetes:[], produccion:[], seq:{} };
+const SHAS={};
+const db={ plantas:()=>DB.plantas, clientes:()=>DB.clientes, pc:()=>DB.pc, labores:()=>DB.labores, volquetes:()=>DB.volquetes, produccion:()=>DB.produccion };
+
+// ═══════════════════════════════════════════════════════════
+//  GITHUB API
+// ═══════════════════════════════════════════════════════════
+async function ghGet(path){
+  const cfg=getConfig(); if(!cfg) return null;
+  try{
+    const res=await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${path}`,{
+      headers:{'Authorization':`token ${cfg.token}`,'Accept':'application/vnd.github.v3+json'}
+    });
+    if(!res.ok) return null;
+    const data=await res.json();
+    const content=JSON.parse(decodeURIComponent(escape(atob(data.content.replace(/\n/g,'')))));
+    return {content,sha:data.sha};
+  }catch(e){ return null; }
+}
+async function ghPut(path,content,sha){
+  const cfg=getConfig(); if(!cfg) return false;
+  const body={message:`update ${path}`,content:btoa(unescape(encodeURIComponent(JSON.stringify(content,null,2))))};
+  if(sha) body.sha=sha;
+  try{
+    const res=await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${path}`,{
+      method:'PUT',
+      headers:{'Authorization':`token ${cfg.token}`,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},
+      body:JSON.stringify(body)
+    });
+    if(res.ok){ const data=await res.json(); SHAS[path]=data.content.sha; return true; }
+    return false;
+  }catch(e){ return false; }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  LOADING
+// ═══════════════════════════════════════════════════════════
+function showLoading(show,msg=''){
+  const el=document.getElementById('loadingOverlay');
+  document.getElementById('loadingMsg').textContent=msg;
+  el.style.display=show?'flex':'none';
+}
+
+// ═══════════════════════════════════════════════════════════
+//  DB OPERATIONS
+// ═══════════════════════════════════════════════════════════
+function nextId(entity){ DB.seq[entity]=(DB.seq[entity]||0)+1; return DB.seq[entity]; }
+
+async function saveDB(collection,withSeq=false){
+  const path=`data/${collection}.json`;
+  const tasks=[ghPut(path,DB[collection],SHAS[path])];
+  if(withSeq) tasks.push(ghPut('data/seq.json',DB.seq,SHAS['data/seq.json']));
+  const results=await Promise.all(tasks);
+  return results[0];
+}
+
+async function loadAllData(){
+  showLoading(true,'Cargando datos desde GitHub...');
+  const INIT={plantas:[],clientes:[],pc:[],labores:[],volquetes:[],produccion:[],seq:{}};
+  await Promise.all(['plantas','clientes','pc','labores','volquetes','produccion','seq'].map(async f=>{
+    const path=`data/${f}.json`;
+    const result=await ghGet(path);
+    if(result){ DB[f]=result.content; SHAS[path]=result.sha; }
+    else{ const init=INIT[f]; await ghPut(path,init,null); DB[f]=Array.isArray(init)?[...init]:{...init}; }
+  }));
+  showLoading(false);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  CONFIG MODAL
+// ═══════════════════════════════════════════════════════════
+function abrirConfig(){
+  const cfg=getConfig()||{};
+  document.getElementById('cfgOwner').value=cfg.owner||'';
+  document.getElementById('cfgRepo').value=cfg.repo||'';
+  document.getElementById('cfgToken').value=cfg.token||'';
+  document.getElementById('cfgError').style.display='none';
+  document.getElementById('cfgCancelBtn').style.display='';
+  document.getElementById('configOverlay').classList.add('show');
+}
+async function guardarConfig(){
+  const owner=document.getElementById('cfgOwner').value.trim();
+  const repo=document.getElementById('cfgRepo').value.trim();
+  const token=document.getElementById('cfgToken').value.trim();
+  const errEl=document.getElementById('cfgError');
+  if(!owner||!repo||!token){ errEl.textContent='Completa todos los campos.'; errEl.style.display='block'; return; }
+  saveConfig({owner,repo,token});
+  document.getElementById('configOverlay').classList.remove('show');
+  await loadAllData();
+  fillProduccionCombos(); renderDashboard(); renderProduccion();
+  toast('✅ Conectado con GitHub exitosamente.');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  INIT APP
+// ═══════════════════════════════════════════════════════════
+async function initApp(){
+  document.getElementById('prFecha').value=new Date().toISOString().slice(0,10);
+  const cfg=getConfig();
+  if(!cfg||!cfg.token||!cfg.owner||!cfg.repo){
+    document.getElementById('cfgCancelBtn').style.display='none';
+    document.getElementById('configOverlay').classList.add('show');
+    return;
+  }
+  await loadAllData();
+  fillProduccionCombos(); renderDashboard();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════════════
+function toast(msg,type='success'){ const t=document.getElementById('toast'); t.textContent=msg; t.className='show '+(type==='error'?'error':'success'); clearTimeout(t._t); t._t=setTimeout(()=>t.className='',3500); }
+function kgToTon(kg){ return Math.round(kg/1000*10000)/10000; }
+function fmtTon(t){ return Number(t).toFixed(4); }
+function fmtKg(k){ return Number(k).toFixed(2); }
+function badge(v){ return `<span class="badge ${v?'badge-yes':'badge-no'}">${v?'Sí':'No'}</span>`; }
+let _confirmCb=null;
+function confirm2(msg,cb){ document.getElementById('confirmMsg').textContent=msg; _confirmCb=cb; document.getElementById('confirmOverlay').classList.add('show'); }
+function closeConfirm(){ document.getElementById('confirmOverlay').classList.remove('show'); _confirmCb=null; }
+document.getElementById('confirmBtn').onclick=()=>{ if(_confirmCb)_confirmCb(); closeConfirm(); };
+
+// ═══════════════════════════════════════════════════════════
+//  NAVEGACIÓN PRINCIPAL
+// ═══════════════════════════════════════════════════════════
+let _currentMain='dashboard';
+function showMain(name){
+  _currentMain=name;
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('nav.main-nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  const btns=[...document.querySelectorAll('nav.main-nav button')];
+  const map={dashboard:'Dashboard',catalogos:'Catálogos',produccion:'Producción'};
+  btns.find(b=>b.textContent.includes(map[name]))?.classList.add('active');
+  document.getElementById('subNavCatalogos').style.display=name==='catalogos'?'flex':'none';
+  if(name==='dashboard'){ fillProduccionCombos(); renderDashboard(); }
+  if(name==='catalogos') renderSub(_currentSub||'plantas');
+  if(name==='produccion'){ fillProduccionCombos(); fillReporteCombos(); renderProduccion(); }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  NAVEGACIÓN SUB
+// ═══════════════════════════════════════════════════════════
+let _currentSub='plantas';
+function showSub(name){
+  _currentSub=name;
+  document.querySelectorAll('.sub-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('nav.sub-nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('sub-'+name).classList.add('active');
+  const btns=[...document.querySelectorAll('nav.sub-nav button')];
+  const map={plantas:'Plantas',clientes:'Clientes',pc:'Planta',labores:'Labores',volquetes:'Volquetes'};
+  btns.find(b=>b.textContent.includes(map[name]))?.classList.add('active');
+  if(name==='plantas') renderPlantas();
+  if(name==='clientes') renderClientes();
+  if(name==='pc'){ fillPCCombos(); renderPC(); }
+  if(name==='labores'){ fillLaborCombos(); renderLabores(); }
+  if(name==='volquetes') renderVolquetes();
+}
+function renderSub(name){ showSub(name); }
+
+// ═══════════════════════════════════════════════════════════
+//  RESET FORMS
+// ═══════════════════════════════════════════════════════════
+function resetForm(s){
+  if(s==='plantas'){ document.getElementById('pId').value=''; document.getElementById('pNombre').value=''; document.getElementById('pActivo').checked=true; }
+  if(s==='clientes'){ document.getElementById('cId').value=''; document.getElementById('cNombre').value=''; document.getElementById('cActivo').checked=true; }
+  if(s==='labores'){ document.getElementById('lId').value=''; document.getElementById('lNombre').value=''; document.getElementById('lPC').value=''; document.getElementById('lActivo').checked=true; }
+  if(s==='volquetes'){ document.getElementById('vId').value=''; document.getElementById('vPlaca').value=''; document.getElementById('vActivo').checked=true; }
+  if(s==='produccion'){
+    document.getElementById('prId').value='';
+    document.getElementById('prFecha').value=new Date().toISOString().slice(0,10);
+    document.getElementById('prLabor').value=''; document.getElementById('prVolquete').value='';
+    document.getElementById('prKg').value=''; document.getElementById('prTon').textContent='0.0000';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  DASHBOARD
+// ═══════════════════════════════════════════════════════════
+function fillDashFiltros(){
+  const labores=db.labores(); const pc=db.pc(); const ps=db.plantas(); const cs=db.clientes(); const vols=db.volquetes();
+  const selL=document.getElementById('dashFiltroLabor'); const selV=document.getElementById('dashFiltroPlaca');
+  const curL=selL.value, curV=selV.value;
+  selL.innerHTML='<option value="">— Todas las labores —</option>'+labores.map(l=>{ const r=pc.find(x=>x.id===l.planta_cliente_id)||{}; const p=ps.find(x=>x.id===r.planta_id)||{}; const c=cs.find(x=>x.id===r.cliente_id)||{}; return `<option value="${l.id}">${l.nombre} (${p.nombre||'?'} – ${c.nombre||'?'})</option>`; }).join('');
+  selV.innerHTML='<option value="">— Todas las placas —</option>'+vols.map(v=>`<option value="${v.id}">${v.placa}</option>`).join('');
+  if(curL) selL.value=curL; if(curV) selV.value=curV;
+}
+function limpiarFiltrosDash(){ document.getElementById('dashFiltroLabor').value=''; document.getElementById('dashFiltroPlaca').value=''; renderDashboard(); }
+function renderDashboard(){
+  fillDashFiltros();
+  const laborId=Number(document.getElementById('dashFiltroLabor').value)||null;
+  const volqId=Number(document.getElementById('dashFiltroPlaca').value)||null;
+  const filtrado=!!laborId||!!volqId;
+  const labores=db.labores(); const volquetes=db.volquetes(); const pc=db.pc(); const plantas=db.plantas(); const clientes=db.clientes();
+  const prodAll=db.produccion();
+  const prod=prodAll.filter(r=>{ if(laborId&&r.labor_id!==laborId) return false; if(volqId&&r.volquete_id!==volqId) return false; return true; });
+  const totalTon=prod.reduce((s,r)=>s+Number(r.toneladas),0);
+  const totalKg=prod.reduce((s,r)=>s+Number(r.kg),0);
+  const prom=prod.length?totalTon/prod.length:0;
+  const metrics=!filtrado?[
+    {icon:'🏭',val:plantas.length,label:'Plantas'},{icon:'👤',val:clientes.length,label:'Clientes'},
+    {icon:'🌿',val:labores.length,label:'Labores'},{icon:'🚛',val:volquetes.length,label:'Volquetes'},
+    {icon:'📋',val:prodAll.length,label:'Registros'},
+    {icon:'⚖️',val:fmtTon(prodAll.reduce((s,r)=>s+Number(r.toneladas),0)),label:'Total Ton.'},
+    {icon:'📊',val:fmtTon(prodAll.length?prodAll.reduce((s,r)=>s+Number(r.toneladas),0)/prodAll.length:0),label:'Promedio Ton.'},
+  ]:[
+    {icon:'📋',val:prod.length,label:'Registros filtrados'},{icon:'⚖️',val:fmtKg(totalKg),label:'Total Kg'},
+    {icon:'🏋️',val:fmtTon(totalTon),label:'Total Ton.'},{icon:'📊',val:fmtTon(prom),label:'Promedio Ton.',hl:true},
+  ];
+  document.getElementById('dashMetrics').innerHTML=metrics.map(m=>`<div class="metric-card" style="${m.hl?'border-top-color:#16a34a':''}"><div class="metric-icon">${m.icon}</div><div class="metric-val" style="${m.hl?'color:#16a34a':''}">${m.val}</div><div class="metric-label">${m.label}</div></div>`).join('');
+  const resumenEl=document.getElementById('dashResumenFiltro'); const textoEl=document.getElementById('dashResumenTexto');
+  if(filtrado){ const lblL=laborId?(labores.find(x=>x.id===laborId)||{}).nombre:'Todas'; const lblV=volqId?(volquetes.find(x=>x.id===volqId)||{}).placa:'Todas'; textoEl.innerHTML=`🌿 <b>Labor:</b> ${lblL} &nbsp;|&nbsp; 🚛 <b>Placa:</b> ${lblV} &nbsp;|&nbsp; 📋 <b>${prod.length}</b> registros &nbsp;|&nbsp; ⚖️ Total: <b>${fmtTon(totalTon)} t</b> &nbsp;|&nbsp; 📊 Promedio: <b>${fmtTon(prom)} t/registro</b>`; resumenEl.style.display='block'; }
+  else { resumenEl.style.display='none'; }
+  document.getElementById('dashTableTitle').textContent=filtrado?`Registros filtrados (${prod.length})`:'Últimos registros de producción';
+  const tbody=document.getElementById('dashTable');
+  const filas=filtrado?prod:[...prodAll].reverse().slice(0,10);
+  if(!filas.length){ tbody.innerHTML=`<tr><td colspan="7" class="empty">Sin registros${filtrado?' para este filtro':' aún'}</td></tr>`; return; }
+  tbody.innerHTML=filas.map(r=>{ const l=labores.find(x=>x.id===r.labor_id)||{}; const v=volquetes.find(x=>x.id===r.volquete_id)||{}; const rel=pc.find(x=>x.id===l.planta_cliente_id)||{}; const p=plantas.find(x=>x.id===rel.planta_id)||{}; const c=clientes.find(x=>x.id===rel.cliente_id)||{}; return `<tr><td>${r.fecha}</td><td>${p.nombre||'?'}</td><td>${c.nombre||'?'}</td><td>${l.nombre||'?'}</td><td>${v.placa||'?'}</td><td>${fmtKg(r.kg)}</td><td>${fmtTon(Number(r.toneladas))}</td></tr>`; }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  PLANTAS
+// ═══════════════════════════════════════════════════════════
+async function savePlanta(){
+  const id=document.getElementById('pId').value; const nombre=document.getElementById('pNombre').value.trim(); const activo=document.getElementById('pActivo').checked;
+  if(!nombre){ toast('El nombre no puede estar vacío.','error'); return; }
+  if(db.plantas().find(p=>p.nombre.toLowerCase()===nombre.toLowerCase()&&p.id!==Number(id))){ toast('Ya existe una planta con ese nombre.','error'); return; }
+  showLoading(true,'Guardando...');
+  if(id){ DB.plantas=DB.plantas.map(p=>p.id===Number(id)?{...p,nombre,activo}:p); }
+  else { DB.plantas.push({id:nextId('plantas'),nombre,activo}); }
+  const ok=await saveDB('plantas',!id); showLoading(false);
+  if(ok){ resetForm('plantas'); renderPlantas(); toast(id?'Planta actualizada.':'Planta creada.'); }
+  else toast('Error al guardar en GitHub.','error');
+}
+function editPlanta(id){ const p=db.plantas().find(x=>x.id===id); if(!p) return; document.getElementById('pId').value=p.id; document.getElementById('pNombre').value=p.nombre; document.getElementById('pActivo').checked=p.activo; }
+function deletePlanta(id){ const p=db.plantas().find(x=>x.id===id); confirm2(`¿Eliminar la planta "${p?.nombre}"?`,async()=>{ DB.plantas=DB.plantas.filter(x=>x.id!==id); showLoading(true,'Eliminando...'); const ok=await saveDB('plantas'); showLoading(false); if(ok){renderPlantas();toast('Planta eliminada.');}else toast('Error.','error'); }); }
+function renderPlantas(){
+  const tbody=document.getElementById('plantasTable'); const lista=db.plantas();
+  if(!lista.length){ tbody.innerHTML=`<tr><td colspan="4" class="empty">Sin plantas registradas</td></tr>`; return; }
+  tbody.innerHTML=lista.map(p=>`<tr><td>${p.id}</td><td>${p.nombre}</td><td>${badge(p.activo)}</td><td><button class="btn btn-warning btn-sm" onclick="editPlanta(${p.id})">✏️ Editar</button> <button class="btn btn-danger btn-sm" onclick="deletePlanta(${p.id})">🗑️</button></td></tr>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  CLIENTES
+// ═══════════════════════════════════════════════════════════
+async function saveCliente(){
+  const id=document.getElementById('cId').value; const nombre=document.getElementById('cNombre').value.trim(); const activo=document.getElementById('cActivo').checked;
+  if(!nombre){ toast('El nombre no puede estar vacío.','error'); return; }
+  if(db.clientes().find(c=>c.nombre.toLowerCase()===nombre.toLowerCase()&&c.id!==Number(id))){ toast('Ya existe un cliente con ese nombre.','error'); return; }
+  showLoading(true,'Guardando...');
+  if(id){ DB.clientes=DB.clientes.map(c=>c.id===Number(id)?{...c,nombre,activo}:c); }
+  else { DB.clientes.push({id:nextId('clientes'),nombre,activo}); }
+  const ok=await saveDB('clientes',!id); showLoading(false);
+  if(ok){ resetForm('clientes'); renderClientes(); toast(id?'Cliente actualizado.':'Cliente creado.'); }
+  else toast('Error al guardar en GitHub.','error');
+}
+function editCliente(id){ const c=db.clientes().find(x=>x.id===id); if(!c) return; document.getElementById('cId').value=c.id; document.getElementById('cNombre').value=c.nombre; document.getElementById('cActivo').checked=c.activo; }
+function deleteCliente(id){ const c=db.clientes().find(x=>x.id===id); confirm2(`¿Eliminar el cliente "${c?.nombre}"?`,async()=>{ DB.clientes=DB.clientes.filter(x=>x.id!==id); showLoading(true,'Eliminando...'); const ok=await saveDB('clientes'); showLoading(false); if(ok){renderClientes();toast('Cliente eliminado.');}else toast('Error.','error'); }); }
+function renderClientes(){
+  const tbody=document.getElementById('clientesTable'); const lista=db.clientes();
+  if(!lista.length){ tbody.innerHTML=`<tr><td colspan="4" class="empty">Sin clientes registrados</td></tr>`; return; }
+  tbody.innerHTML=lista.map(c=>`<tr><td>${c.id}</td><td>${c.nombre}</td><td>${badge(c.activo)}</td><td><button class="btn btn-warning btn-sm" onclick="editCliente(${c.id})">✏️ Editar</button> <button class="btn btn-danger btn-sm" onclick="deleteCliente(${c.id})">🗑️</button></td></tr>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  PLANTA-CLIENTE
+// ═══════════════════════════════════════════════════════════
+function fillPCCombos(){
+  const ps=db.plantas(); const cs=db.clientes();
+  document.getElementById('pcPlanta').innerHTML='<option value="">-- Seleccione --</option>'+ps.map(p=>`<option value="${p.id}">${p.nombre}</option>`).join('');
+  document.getElementById('pcCliente').innerHTML='<option value="">-- Seleccione --</option>'+cs.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
+}
+async function savePlantaCliente(){
+  const pid=Number(document.getElementById('pcPlanta').value); const cid=Number(document.getElementById('pcCliente').value);
+  if(!pid||!cid){ toast('Seleccione planta y cliente.','error'); return; }
+  if(db.pc().find(r=>r.planta_id===pid&&r.cliente_id===cid)){ toast('Esa combinación ya existe.','error'); return; }
+  showLoading(true,'Guardando...');
+  DB.pc.push({id:nextId('pc'),planta_id:pid,cliente_id:cid});
+  const ok=await saveDB('pc',true); showLoading(false);
+  if(ok){ renderPC(); toast('Asociación creada.'); } else toast('Error al guardar.','error');
+}
+function deletePC(id){ confirm2('¿Eliminar esta asociación?',async()=>{ DB.pc=DB.pc.filter(x=>x.id!==id); showLoading(true,'Eliminando...'); const ok=await saveDB('pc'); showLoading(false); if(ok){renderPC();toast('Asociación eliminada.');}else toast('Error.','error'); }); }
+function renderPC(){
+  const tbody=document.getElementById('pcTable'); const lista=db.pc(); const ps=db.plantas(); const cs=db.clientes();
+  if(!lista.length){ tbody.innerHTML=`<tr><td colspan="4" class="empty">Sin asociaciones</td></tr>`; return; }
+  tbody.innerHTML=lista.map(r=>{ const p=ps.find(x=>x.id===r.planta_id)||{}; const c=cs.find(x=>x.id===r.cliente_id)||{}; return `<tr><td>${r.id}</td><td>${p.nombre||'?'}</td><td>${c.nombre||'?'}</td><td><button class="btn btn-danger btn-sm" onclick="deletePC(${r.id})">🗑️</button></td></tr>`; }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  LABORES
+// ═══════════════════════════════════════════════════════════
+function fillLaborCombos(){
+  const pc=db.pc(); const ps=db.plantas(); const cs=db.clientes();
+  document.getElementById('lPC').innerHTML='<option value="">-- Seleccione --</option>'+pc.map(r=>{ const p=ps.find(x=>x.id===r.planta_id)||{}; const c=cs.find(x=>x.id===r.cliente_id)||{}; return `<option value="${r.id}">${p.nombre||'?'} – ${c.nombre||'?'}</option>`; }).join('');
+}
+async function saveLabor(){
+  const id=document.getElementById('lId').value; const nombre=document.getElementById('lNombre').value.trim(); const pc_id=Number(document.getElementById('lPC').value); const activo=document.getElementById('lActivo').checked;
+  if(!nombre){ toast('El nombre no puede estar vacío.','error'); return; }
+  if(!pc_id){ toast('Seleccione una Planta-Cliente.','error'); return; }
+  if(db.labores().find(l=>l.nombre.toLowerCase()===nombre.toLowerCase()&&l.planta_cliente_id===pc_id&&l.id!==Number(id))){ toast('Ya existe esa labor en esa Planta-Cliente.','error'); return; }
+  showLoading(true,'Guardando...');
+  if(id){ DB.labores=DB.labores.map(l=>l.id===Number(id)?{...l,nombre,planta_cliente_id:pc_id,activo}:l); }
+  else { DB.labores.push({id:nextId('labores'),nombre,planta_cliente_id:pc_id,activo}); }
+  const ok=await saveDB('labores',!id); showLoading(false);
+  if(ok){ resetForm('labores'); renderLabores(); toast(id?'Labor actualizada.':'Labor creada.'); }
+  else toast('Error al guardar.','error');
+}
+function editLabor(id){ const l=db.labores().find(x=>x.id===id); if(!l) return; document.getElementById('lId').value=l.id; document.getElementById('lNombre').value=l.nombre; document.getElementById('lPC').value=l.planta_cliente_id; document.getElementById('lActivo').checked=l.activo; }
+function deleteLabor(id){ const l=db.labores().find(x=>x.id===id); confirm2(`¿Eliminar la labor "${l?.nombre}"?`,async()=>{ DB.labores=DB.labores.filter(x=>x.id!==id); showLoading(true,'Eliminando...'); const ok=await saveDB('labores'); showLoading(false); if(ok){renderLabores();toast('Labor eliminada.');}else toast('Error.','error'); }); }
+function renderLabores(){
+  const tbody=document.getElementById('laboresTable'); const lista=db.labores(); const pc=db.pc(); const ps=db.plantas(); const cs=db.clientes();
+  if(!lista.length){ tbody.innerHTML=`<tr><td colspan="6" class="empty">Sin labores registradas</td></tr>`; return; }
+  tbody.innerHTML=lista.map(l=>{ const r=pc.find(x=>x.id===l.planta_cliente_id)||{}; const p=ps.find(x=>x.id===r.planta_id)||{}; const c=cs.find(x=>x.id===r.cliente_id)||{}; return `<tr><td>${l.id}</td><td>${l.nombre}</td><td>${p.nombre||'?'}</td><td>${c.nombre||'?'}</td><td>${badge(l.activo)}</td><td><button class="btn btn-warning btn-sm" onclick="editLabor(${l.id})">✏️</button> <button class="btn btn-danger btn-sm" onclick="deleteLabor(${l.id})">🗑️</button></td></tr>`; }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  VOLQUETES
+// ═══════════════════════════════════════════════════════════
+async function saveVolquete(){
+  const id=document.getElementById('vId').value; const placa=document.getElementById('vPlaca').value.trim().toUpperCase(); const activo=document.getElementById('vActivo').checked;
+  if(!placa){ toast('La placa no puede estar vacía.','error'); return; }
+  if(db.volquetes().find(v=>v.placa===placa&&v.id!==Number(id))){ toast('Ya existe un volquete con esa placa.','error'); return; }
+  showLoading(true,'Guardando...');
+  if(id){ DB.volquetes=DB.volquetes.map(v=>v.id===Number(id)?{...v,placa,activo}:v); }
+  else { DB.volquetes.push({id:nextId('volquetes'),placa,activo}); }
+  const ok=await saveDB('volquetes',!id); showLoading(false);
+  if(ok){ resetForm('volquetes'); renderVolquetes(); toast(id?'Volquete actualizado.':'Volquete creado.'); }
+  else toast('Error al guardar.','error');
+}
+function editVolquete(id){ const v=db.volquetes().find(x=>x.id===id); if(!v) return; document.getElementById('vId').value=v.id; document.getElementById('vPlaca').value=v.placa; document.getElementById('vActivo').checked=v.activo; }
+function deleteVolquete(id){ const v=db.volquetes().find(x=>x.id===id); confirm2(`¿Eliminar el volquete "${v?.placa}"?`,async()=>{ DB.volquetes=DB.volquetes.filter(x=>x.id!==id); showLoading(true,'Eliminando...'); const ok=await saveDB('volquetes'); showLoading(false); if(ok){renderVolquetes();toast('Volquete eliminado.');}else toast('Error.','error'); }); }
+function renderVolquetes(){
+  const tbody=document.getElementById('volquetesTable'); const lista=db.volquetes();
+  if(!lista.length){ tbody.innerHTML=`<tr><td colspan="4" class="empty">Sin volquetes registrados</td></tr>`; return; }
+  tbody.innerHTML=lista.map(v=>`<tr><td>${v.id}</td><td>${v.placa}</td><td>${badge(v.activo)}</td><td><button class="btn btn-warning btn-sm" onclick="editVolquete(${v.id})">✏️</button> <button class="btn btn-danger btn-sm" onclick="deleteVolquete(${v.id})">🗑️</button></td></tr>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  PRODUCCIÓN
+// ═══════════════════════════════════════════════════════════
+function fillProduccionCombos(){
+  const labores=db.labores(); const pc=db.pc(); const ps=db.plantas(); const cs=db.clientes(); const vols=db.volquetes();
+  document.getElementById('prLabor').innerHTML='<option value="">-- Seleccione --</option>'+labores.map(l=>{ const r=pc.find(x=>x.id===l.planta_cliente_id)||{}; const p=ps.find(x=>x.id===r.planta_id)||{}; const c=cs.find(x=>x.id===r.cliente_id)||{}; return `<option value="${l.id}">${l.nombre} (${p.nombre||'?'} – ${c.nombre||'?'})</option>`; }).join('');
+  document.getElementById('prVolquete').innerHTML='<option value="">-- Seleccione --</option>'+vols.map(v=>`<option value="${v.id}">${v.placa}</option>`).join('');
+}
+function toggleNuevaLabor(){
+  const f=document.getElementById('nuevaLaborForm'); const visible=f.style.display==='block';
+  f.style.display=visible?'none':'block';
+  if(!visible){
+    const pc=db.pc(); const ps=db.plantas(); const cs=db.clientes();
+    document.getElementById('nuevaLaborPC').innerHTML='<option value="">-- Seleccione --</option>'+pc.map(r=>{ const p=ps.find(x=>x.id===r.planta_id)||{}; const c=cs.find(x=>x.id===r.cliente_id)||{}; return `<option value="${r.id}">${p.nombre||'?'} – ${c.nombre||'?'}</option>`; }).join('');
+    document.getElementById('nuevaLaborNombre').value=''; document.getElementById('nuevaLaborNombre').focus();
+  }
+}
+async function guardarNuevaLabor(){
+  const nombre=document.getElementById('nuevaLaborNombre').value.trim(); const pc_id=Number(document.getElementById('nuevaLaborPC').value);
+  if(!nombre){ toast('Ingrese el nombre de la labor.','error'); return; }
+  if(!pc_id){ toast('Seleccione una Planta-Cliente.','error'); return; }
+  if(db.labores().find(l=>l.nombre.toLowerCase()===nombre.toLowerCase()&&l.planta_cliente_id===pc_id)){ toast('Ya existe esa labor en esa Planta-Cliente.','error'); return; }
+  showLoading(true,'Guardando labor...');
+  const newId=nextId('labores');
+  DB.labores.push({id:newId,nombre,planta_cliente_id:pc_id,activo:true});
+  const ok=await saveDB('labores',true); showLoading(false);
+  if(ok){ fillProduccionCombos(); document.getElementById('prLabor').value=newId; document.getElementById('nuevaLaborForm').style.display='none'; toast(`Labor "${nombre}" creada y seleccionada.`); }
+  else toast('Error al guardar.','error');
+}
+function toggleNuevaPlaca(){
+  const f=document.getElementById('nuevaPlacaForm'); const visible=f.style.display==='block';
+  f.style.display=visible?'none':'block';
+  if(!visible){ document.getElementById('nuevaPlacaInput').value=''; document.getElementById('nuevaPlacaInput').focus(); }
+}
+async function guardarNuevaPlaca(){
+  const placa=document.getElementById('nuevaPlacaInput').value.trim().toUpperCase();
+  if(!placa){ toast('Ingrese una placa.','error'); return; }
+  if(db.volquetes().find(v=>v.placa===placa)){ toast('Esa placa ya existe.','error'); return; }
+  showLoading(true,'Guardando placa...');
+  const newId=nextId('volquetes');
+  DB.volquetes.push({id:newId,placa,activo:true});
+  const ok=await saveDB('volquetes',true); showLoading(false);
+  if(ok){ fillProduccionCombos(); document.getElementById('prVolquete').value=newId; document.getElementById('nuevaPlacaForm').style.display='none'; toast(`Placa "${placa}" creada y seleccionada.`); }
+  else toast('Error al guardar.','error');
+}
+function calcTon(){ const kg=parseFloat(document.getElementById('prKg').value)||0; document.getElementById('prTon').textContent=fmtTon(kgToTon(kg)); }
+async function saveProduccion(){
+  const id=document.getElementById('prId').value; const fecha=document.getElementById('prFecha').value; const labor_id=Number(document.getElementById('prLabor').value); const volquete_id=Number(document.getElementById('prVolquete').value); const kg=parseFloat(document.getElementById('prKg').value);
+  if(!fecha){ toast('La fecha no puede estar vacía.','error'); return; }
+  if(!labor_id){ toast('Seleccione una labor.','error'); return; }
+  if(!volquete_id){ toast('Seleccione un volquete.','error'); return; }
+  if(!kg||kg<=0){ toast('Los kilogramos deben ser mayores a cero.','error'); return; }
+  if(db.produccion().find(r=>r.labor_id===labor_id&&r.volquete_id===volquete_id&&r.fecha===fecha&&r.id!==Number(id))){ toast('Ese volquete ya tiene producción en esa labor y fecha.','error'); return; }
+  const toneladas=kgToTon(kg);
+  showLoading(true,'Guardando producción...');
+  if(id){ DB.produccion=DB.produccion.map(r=>r.id===Number(id)?{...r,fecha,labor_id,volquete_id,kg,toneladas}:r); }
+  else { DB.produccion.push({id:nextId('produccion'),fecha,labor_id,volquete_id,kg,toneladas}); }
+  const ok=await saveDB('produccion',!id); showLoading(false);
+  if(ok){ resetForm('produccion'); renderDashboard(); renderProduccion(); toast(id?'Producción actualizada.':'Producción registrada.'); }
+  else toast('Error al guardar.','error');
+}
+function editProduccion(id){ const r=db.produccion().find(x=>x.id===id); if(!r) return; document.getElementById('prId').value=r.id; document.getElementById('prFecha').value=r.fecha; document.getElementById('prLabor').value=r.labor_id; document.getElementById('prVolquete').value=r.volquete_id; document.getElementById('prKg').value=r.kg; document.getElementById('prTon').textContent=fmtTon(Number(r.toneladas)); showMain('dashboard'); }
+function deleteProduccion(id){ confirm2(`¿Eliminar el registro ID=${id}?`,async()=>{ DB.produccion=DB.produccion.filter(x=>x.id!==id); showLoading(true,'Eliminando...'); const ok=await saveDB('produccion'); showLoading(false); if(ok){renderProduccion();renderDashboard();toast('Registro eliminado.');}else toast('Error.','error'); }); }
+function renderProduccion(){
+  const tbody=document.getElementById('produccionTable'); const lista=db.produccion(); const labores=db.labores(); const vols=db.volquetes(); const pc=db.pc(); const ps=db.plantas(); const cs=db.clientes();
+  if(!lista.length){ tbody.innerHTML=`<tr><td colspan="9" class="empty">Sin registros de producción</td></tr>`; return; }
+  tbody.innerHTML=lista.map(r=>{ const l=labores.find(x=>x.id===r.labor_id)||{}; const v=vols.find(x=>x.id===r.volquete_id)||{}; const rel=pc.find(x=>x.id===l.planta_cliente_id)||{}; const p=ps.find(x=>x.id===rel.planta_id)||{}; const c=cs.find(x=>x.id===rel.cliente_id)||{}; return `<tr><td>${r.id}</td><td>${r.fecha}</td><td>${p.nombre||'?'}</td><td>${c.nombre||'?'}</td><td>${l.nombre||'?'}</td><td>${v.placa||'?'}</td><td>${fmtKg(r.kg)}</td><td>${fmtTon(Number(r.toneladas))}</td><td><button class="btn btn-warning btn-sm" onclick="editProduccion(${r.id})">✏️</button> <button class="btn btn-danger btn-sm" onclick="deleteProduccion(${r.id})">🗑️</button></td></tr>`; }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  REPORTES EXCEL
+// ═══════════════════════════════════════════════════════════
+function fillReporteCombos(){
+  const labores=db.labores(); const pc=db.pc(); const ps=db.plantas(); const cs=db.clientes();
+  document.getElementById('rptLabor').innerHTML='<option value="">-- Labor --</option>'+labores.map(l=>{ const r=pc.find(x=>x.id===l.planta_cliente_id)||{}; const p=ps.find(x=>x.id===r.planta_id)||{}; const c=cs.find(x=>x.id===r.cliente_id)||{}; return `<option value="${l.id}">${l.nombre} (${p.nombre||'?'} – ${c.nombre||'?'})</option>`; }).join('');
+}
+function getProdConNombres(filtro=null){
+  const prod=db.produccion(); const labores=db.labores(); const vols=db.volquetes(); const pc=db.pc(); const ps=db.plantas(); const cs=db.clientes();
+  return prod.filter(r=>!filtro||filtro(r)).map(r=>{ const l=labores.find(x=>x.id===r.labor_id)||{}; const v=vols.find(x=>x.id===r.volquete_id)||{}; const rel=pc.find(x=>x.id===l.planta_cliente_id)||{}; const p=ps.find(x=>x.id===rel.planta_id)||{}; const c=cs.find(x=>x.id===rel.cliente_id)||{}; return {ID:r.id,Fecha:r.fecha,Planta:p.nombre||'?',Cliente:c.nombre||'?',Labor:l.nombre||'?',Placa:v.placa||'?',Kg:Number(r.kg),Toneladas:Number(r.toneladas)}; });
+}
+function exportXLSX(rows,filename,sheetName='Datos'){
+  if(!rows.length){ toast('No hay datos para exportar.','error'); return; }
+  const ws=XLSX.utils.json_to_sheet(rows); ws['!cols']=Object.keys(rows[0]).map(k=>({wch:Math.max(k.length,14)+2}));
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,sheetName); XLSX.writeFile(wb,filename); toast(`"${filename}" generado.`);
+}
+function exportarGeneral(){ exportXLSX(getProdConNombres(),'Produccion_General.xlsx','Producción General'); }
+function exportarPorLabor(){
+  const labor_id=Number(document.getElementById('rptLabor').value); if(!labor_id){ toast('Seleccione una labor.','error'); return; }
+  const l=db.labores().find(x=>x.id===labor_id); const rows=getProdConNombres(r=>r.labor_id===labor_id);
+  if(!rows.length){ toast('No hay producción para esa labor.','error'); return; }
+  const totalKg=rows.reduce((s,r)=>s+r.Kg,0); const totalTon=rows.reduce((s,r)=>s+r.Toneladas,0); const prom=totalTon/rows.length;
+  rows.push({ID:'',Fecha:'TOTAL',Planta:'',Cliente:'',Labor:'',Placa:'',Kg:Math.round(totalKg*100)/100,Toneladas:Math.round(totalTon*10000)/10000});
+  rows.push({ID:'',Fecha:'PROMEDIO',Planta:'',Cliente:'',Labor:'',Placa:'',Kg:'',Toneladas:Math.round(prom*10000)/10000});
+  exportXLSX(rows,`Produccion_${l?.nombre||'Labor'}.xlsx`,'Por Labor');
+}
+function exportarResumenPlanta(){
+  const rows=getProdConNombres(); if(!rows.length){ toast('No hay datos.','error'); return; }
+  const map={}; rows.forEach(r=>{ if(!map[r.Planta]) map[r.Planta]={Planta:r.Planta,Registros:0,Total_Kg:0,Total_Toneladas:0}; map[r.Planta].Registros++; map[r.Planta].Total_Kg+=r.Kg; map[r.Planta].Total_Toneladas+=r.Toneladas; });
+  const resumen=Object.values(map).map(r=>({Planta:r.Planta,'Registros':r.Registros,'Total Kg':Math.round(r.Total_Kg*100)/100,'Total Ton':Math.round(r.Total_Toneladas*10000)/10000,'Promedio Ton':Math.round(r.Total_Toneladas/r.Registros*10000)/10000}));
+  exportXLSX(resumen,'Resumen_Plantas.xlsx','Por Planta');
+}
+function exportarJSON(){
+  const data={plantas:db.plantas(),clientes:db.clientes(),pc:db.pc(),labores:db.labores(),volquetes:db.volquetes(),produccion:db.produccion()};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`backup_${new Date().toISOString().slice(0,10)}.json`; a.click(); toast('Backup descargado.');
+}
+function limpiarTodo(){
+  const totalReg=db.produccion().length+db.plantas().length+db.clientes().length+db.labores().length+db.volquetes().length;
+  if(totalReg===0){ toast('No hay datos que limpiar.','error'); return; }
+  const resumen=`📋 Producción: ${db.produccion().length} registros\n🏭 Plantas: ${db.plantas().length}\n👤 Clientes: ${db.clientes().length}\n🌿 Labores: ${db.labores().length}\n🚛 Volquetes: ${db.volquetes().length}`;
+  document.getElementById('confirmOverlay').classList.remove('show');
+  document.getElementById('limpiarResumen').textContent=resumen.trim();
+  document.getElementById('limpiarInput').value=''; document.getElementById('limpiarError').style.display='none';
+  document.getElementById('limpiarOverlay').classList.add('show');
+  document.getElementById('limpiarInput').focus();
+}
+async function ejecutarLimpieza(){
+  const val=document.getElementById('limpiarInput').value.trim().toUpperCase();
+  if(val!=='LIMPIAR'){ document.getElementById('limpiarError').style.display='block'; document.getElementById('limpiarInput').focus(); return; }
+  exportarJSON();
+  DB.plantas=[]; DB.clientes=[]; DB.pc=[]; DB.labores=[]; DB.volquetes=[]; DB.produccion=[]; DB.seq={};
+  showLoading(true,'Limpiando en GitHub...');
+  await Promise.all(['plantas','clientes','pc','labores','volquetes','produccion','seq'].map(f=>saveDB(f)));
+  showLoading(false);
+  document.getElementById('limpiarOverlay').classList.remove('show');
+  fillProduccionCombos(); renderDashboard(); renderProduccion();
+  toast('✅ Respaldo descargado y datos eliminados correctamente.');
+}
+function cerrarLimpiar(){ document.getElementById('limpiarOverlay').classList.remove('show'); }
+async function importarJSON(evt){
+  const file=evt.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=async e=>{
+    try{
+      const d=JSON.parse(e.target.result);
+      if(d.plantas) DB.plantas=d.plantas; if(d.clientes) DB.clientes=d.clientes; if(d.pc) DB.pc=d.pc;
+      if(d.labores) DB.labores=d.labores; if(d.volquetes) DB.volquetes=d.volquetes; if(d.produccion) DB.produccion=d.produccion;
+      showLoading(true,'Importando a GitHub...');
+      await Promise.all(['plantas','clientes','pc','labores','volquetes','produccion'].map(f=>saveDB(f)));
+      showLoading(false);
+      toast('Datos importados.'); renderDashboard(); renderProduccion();
+    }catch(err){ toast('Archivo inválido.','error'); }
+  };
+  reader.readAsText(file); evt.target.value='';
+}
+
+// ═══════════════════════════════════════════════════════════
+//  INICIO
+// ═══════════════════════════════════════════════════════════
+initApp();
+</script>
+</body>
+</html>
