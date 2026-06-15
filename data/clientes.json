@@ -8,5 +8,10 @@
     "id": 3,
     "nombre": "JOSE ANTONIO PAUCAR",
     "activo": true
+  },
+  {
+    "id": 9,
+    "nombre": "INSIGHT",
+    "activo": true
   }
 ]
