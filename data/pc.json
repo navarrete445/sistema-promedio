@@ -1,10 +1,5 @@
 [
   {
-    "id": 1,
-    "planta_id": 3,
-    "cliente_id": 1
-  },
-  {
     "id": 2,
     "planta_id": 3,
     "cliente_id": 2
