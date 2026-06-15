@@ -823,8 +823,6 @@ function renderDashboard(){
   const totalKg=prod.reduce((s,r)=>s+Number(r.kg),0);
   const prom=prod.length?totalTon/prod.length:0;
   const metrics=!filtrado?[
-    {icon:'🏭',val:plantas.length,label:'Plantas'},{icon:'👤',val:clientes.length,label:'Clientes'},
-    {icon:'🌿',val:labores.length,label:'Labores'},{icon:'🚛',val:volquetes.length,label:'Volquetes'},
     {icon:'📋',val:prodAll.length,label:'Registros'},
     {icon:'⚖️',val:fmtTon(prodAll.reduce((s,r)=>s+Number(r.toneladas),0)),label:'Total Ton.'},
     {icon:'📊',val:fmtTon(prodAll.length?prodAll.reduce((s,r)=>s+Number(r.toneladas),0)/prodAll.length:0),label:'Promedio Ton.'},
@@ -838,7 +836,8 @@ function renderDashboard(){
   else { resumenEl.style.display='none'; }
   document.getElementById('dashTableTitle').textContent=filtrado?`Registros filtrados (${prod.length})`:'Últimos registros de producción';
   const tbody=document.getElementById('dashTable');
-  const filas=filtrado?prod:[...prodAll].reverse().slice(0,10);
+  const sortByFecha=(a,b)=>b.fecha.localeCompare(a.fecha);
+  const filas=filtrado?[...prod].sort(sortByFecha):[...prodAll].sort(sortByFecha).slice(0,10);
   if(!filas.length){ tbody.innerHTML=`<tr><td colspan="7" class="empty">Sin registros${filtrado?' para este filtro':' aún'}</td></tr>`; return; }
   tbody.innerHTML=filas.map(r=>{ const l=labores.find(x=>x.id===r.labor_id)||{}; const v=volquetes.find(x=>x.id===r.volquete_id)||{}; const rel=pc.find(x=>x.id===l.planta_cliente_id)||{}; const p=plantas.find(x=>x.id===rel.planta_id)||{}; const c=clientes.find(x=>x.id===rel.cliente_id)||{}; return `<tr><td>${r.fecha}</td><td>${p.nombre||'?'}</td><td>${c.nombre||'?'}</td><td>${l.nombre||'?'}</td><td>${v.placa||'?'}</td><td>${fmtKg(r.kg)}</td><td>${fmtTon(Number(r.toneladas))}</td></tr>`; }).join('');
 }
