@@ -214,5 +214,13 @@
     "volquete_id": 7,
     "kg": 33920,
     "toneladas": 33.92
+  },
+  {
+    "id": 28,
+    "fecha": "2026-05-31",
+    "labor_id": 1,
+    "volquete_id": 3,
+    "kg": 39110,
+    "toneladas": 39.11
   }
 ]
