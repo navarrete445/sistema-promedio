@@ -1,1 +1,7 @@
-[]
+[
+  {
+    "id": 1,
+    "placa": "CER-769",
+    "activo": true
+  }
+]
