@@ -18,5 +18,10 @@
     "id": 4,
     "placa": "TFF-891",
     "activo": true
+  },
+  {
+    "id": 5,
+    "placa": "CHU-820",
+    "activo": true
   }
 ]
