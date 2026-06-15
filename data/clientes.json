@@ -1,10 +1,5 @@
 [
   {
-    "id": 1,
-    "nombre": "qwert",
-    "activo": true
-  },
-  {
     "id": 2,
     "nombre": "dfsdfd",
     "activo": true
